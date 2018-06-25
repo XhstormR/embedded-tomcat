@@ -23,13 +23,23 @@ dependencies {
 }
 
 tasks {
+    val beforeJar by creating {
+        buildDir
+                .resolve("tmp").apply { mkdirs() }
+                .resolve("1.txt").apply { createNewFile() }
+                .bufferedWriter().use { configurations.compile.forEach { s -> it.write("$s\n") } }
+    }
+
     withType<JavaExec> {
         dependsOn("generateRebel")
-        jvmArgs = listOf(ext["rebelAgent"].toString())
+        jvmArgs = listOf(ext["rebelAgent"].toString()) //gradlew compileKotlin
     }
 
     withType<Jar> {
+        dependsOn(beforeJar)
         version = ""
+        manifest.attributes["Main-Class"] = application.mainClassName
+        from(buildDir.resolve("tmp/1.txt").bufferedReader().readLines().map { zipTree(it) })
     }
 
     withType<Wrapper> {
